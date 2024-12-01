@@ -1,40 +1,48 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const cors = require('cors');
+const { ApolloServer } = require('apollo-server-express');  // Import ApolloServer
+const { typeDefs, resolvers } = require('./graphql');  // Import GraphQL schema and resolvers
 
 const app = express();
 
-const cors = require('cors');
+// Use CORS to allow the Angular frontend to make requests
 app.use(cors({
-    origin: 'http://localhost:4200', // Allow requests from this origin
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],}))
+  origin: 'http://localhost:4200',  // Allow requests from Angular
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+}));
 
 // MongoDB connection URL
-
 const url = 'mongodb://localhost/MyDB';  
-// Connect to MongoDB
-mongoose.connect(url);  // You can use { useNewUrlParser: true, useUnifiedTopology: true } if needed
-
-// Get the connection object
+mongoose.connect(url);  // Connect to MongoDB
 const con = mongoose.connection;
 
-
 con.on('open', () => {
-    console.log('Connection Success!..');
+  console.log('Connection Success!..');
 });
 
 con.on('error', (err) => {
-    console.error('Connection error:', err);
+  console.error('Connection error:', err);
 });
 
-app.use(express.json())
-// Handle connection events
-// Require the student router with the correct path
-const studentRouter = require('./routes/students'); // Adjust this path if necessary
+app.use(express.json());  // Middleware to parse JSON data
+
+// Set up Apollo Server with schema and resolvers
+const server = new ApolloServer({
+  typeDefs,  // Pass GraphQL schema
+  resolvers, // Pass resolvers for queries and mutations
+});
+
+// Apply Apollo Server middleware to Express
+server.applyMiddleware({ app });
+
+// Handle student routes (no GraphQL here)
+const studentRouter = require('./routes/students');
 app.use('/students', studentRouter);
 
 // Start the Express server
-const port = 3001; // You can set your desired port here
+const port = 3000;
 app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
+  console.log(`Server is running on port ${port}`);
+  console.log(`GraphQL server ready at http://localhost:${port}${server.graphqlPath}`);
 });
-
